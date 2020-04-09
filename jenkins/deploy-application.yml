@@ -1,0 +1,72 @@
+---
+
+  - name: "package application"
+    hosts: localhost
+    gather_facts: false
+    tasks:
+      - name: "create zip archive"
+        archive:
+          path: 
+            - ../dist/hello-world.war
+            - ../dist/appConfig
+          dest: ./artifact.zip
+          format: zip
+      
+  - name: "deploy application"
+    hosts: tag_Name_demo_tomcat8_deleteme
+    become: yes
+    tasks:
+      - name: "upload archive"
+        copy:
+          src: "./artifact.zip"
+          dest: "/tmp/artifact.zip"
+          owner: "tomcat"
+          group: "tomcat"
+          mode: "0775"
+          force: yes
+      - name: delete old /tmp/todeploy
+        file:
+          path: "/tmp/todeploy/"
+          state: absent
+      - name: create empty /tmp/todeploy
+        file:
+          path: "/tmp/todeploy/"
+          owner: "tomcat"
+          group: "tomcat"
+          mode: "0775"
+          state: directory
+      - name: extract archive
+        unarchive:
+          src: "/tmp/artifact.zip"
+          dest: "/tmp/todeploy/"
+          owner: "tomcat"
+          group: "tomcat"
+          mode: "0775"
+          remote_src: yes
+      - name: delete old /opt/tomcat/webapps
+        file:
+          path: "/opt/tomcat/webapps/"
+          state: absent
+      - name: create empty /opt/tomcat/webapps
+        file:
+          path: "/opt/tomcat/webapps/"
+          owner: "tomcat"
+          group: "tomcat"
+          mode: "0775"
+          state: directory
+      - name: deploy war
+        copy:
+          src: "/tmp/todeploy/hello-world.war"
+          dest: "/opt/tomcat/webapps/hello-world.war"
+          owner: "tomcat"
+          group: "tomcat"
+          mode: "0775"
+          remote_src: yes
+          force: yes
+        notify: restart tomcat
+    handlers:
+      - name: restart tomcat
+        systemd:
+          name: "tomcat"
+          state: restarted
+          daemon_reload: yes
