@@ -1,0 +1,20 @@
+plugin: aws_ec2
+regions:
+    - eu-west-1
+keyed_groups:
+    # add hosts to tag_Name_value groups for each aws_ec2 host's tags.Name variable
+    - key: tags.Name
+      prefix: tag_Name
+      separator: " "
+    - key: tags.project
+      prefix: tag_project
+      separator: " "
+    - key: tags.user
+      prefix: tag_user
+      separator: " "
+groups:
+    # add hosts to the group development if any of the dictionary's keys or values is the word 'devel'
+    lsa-group: "'common*' in (tags|list)"
+compose:
+    # set the ansible_host variable to connect with the private IP address without changing the hostname
+    ansible_host: private_ip_address
